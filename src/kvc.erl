@@ -14,7 +14,7 @@
 -type kvc_obj() :: kvc_obj_node() | [kvc_obj_node()] | list().
 -type kvc_key() :: binary() | atom() | string().
 -type proplist() :: [{kvc_key(), kvc_obj()}].
--type kvc_obj_node() :: proplist() | {struct, proplist()} | dict() | gb_tree() | term().
+-type kvc_obj_node() :: proplist() | {obj, proplist()} | {struct, proplist()} | dict() | gb_tree() | term().
 -type typed_proplist() :: {proplist() | {gb_tree, gb_tree()}, elem_type()}.
 
 %% @spec path(kvc_key() | [kvc_key()], kvc_obj()) -> term() | []
@@ -99,6 +99,8 @@ get_nested_values(_K, [], _R) ->
 -spec proplist_type(term()) -> typed_proplist().
 proplist_type(P=[{K, _} | _]) ->
     {P, typeof_elem(K)};
+proplist_type({obj, P=[{K, _} | _]}) ->
+    {P, typeof_elem(K)};
 proplist_type({struct, P=[{K, _} | _]}) ->
     {P, typeof_elem(K)};
 proplist_type(L) when is_list(L) ->
@@ -159,7 +161,18 @@ normalize(K, string) when is_atom(K) ->
     atom_to_list(K);
 normalize(K, undefined) ->
     K.
+    
+    
+    
+    
+    
+    
 
+%% ===================================================================
+%% Tests
+%% ===================================================================
+    
+        
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 path_aggregate_test() ->
@@ -293,7 +306,15 @@ path_plist_test() ->
                  [{"foo",
                    {struct,
                     [{"bar",
-                      {struct, [{"baz", "wibble"}]}}]}}]})),
+                      {struct, [{"baz", "wibble"}]}}]}}]})),                      
+    ?assertEqual(
+         <<"wibble">>,
+         kvc:path(foo.bar.baz,
+                  {obj,
+                   [{<<"foo">>,
+                     {obj,
+                      [{<<"bar">>,
+                        {obj, [{<<"baz">>, <<"wibble">>}]}}]}}]})),
     ?assertEqual(
        ok,
        kvc:value("foo", [{foo, ok}], [])),
